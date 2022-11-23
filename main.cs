@@ -4,26 +4,68 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.IO;
+using System.Security;
 
-    class Program
+  class Program
     {
         /*Консольное приложение "Авиакассы"
          Выполнила: Храброва А.А., группа 1521501*/
         static void Main(string[] args)
         {
             Console.Write("Добро пожаловать в авиакассу \"Freedom flight\".\n(Мы не отвечаем за реальное существование предлагаемых рейсов, вы всё делаете на свой страх и риск).\n");
-            Console.Write("Здесь вы можете преобрести билеты по направлениям:\n");
+          authorization();
+            Console.ReadLine();
+        }
+     
+        static void authorization(){         
+     Authorizator auth = new Authorizator();
+           string username, passwd;
+          Console.Write("\nПОЖАЛУЙСТА, ПРОЙДИТЕ АВТОРИЗАЦИЮ: \n");
+          Console.Write("Необходим вход для \n\t1)покупателя,\n\t2)администратора: \nВыберите 1 или 2: ");
+          int status =  Int32.Parse(Console.ReadLine());
+          int dop_status=0;
+             if(status==1){
+           Console.Write("Вы хотите \n\t1)зайти в существующую учетную запись,\n\t2)создать новую учетную запись: \nВыберите 1 или 2: ");
+          dop_status =  Int32.Parse(Console.ReadLine());
+        }
+          if(dop_status==2){
+             Console.Write("Как к вам обращаться: ");
+          string name = Console.ReadLine();
+            Console.Write("Придумайте логин: ");
+          username = Console.ReadLine();
+          Console.Write("Придумайте пароль: ");
+           passwd = Console.ReadLine();
+           auth.register(name,username,passwd);
+            Console.Write("Регистрация прошла успешно. Зaйдите в свою учетную запись... \n");
+            authorization();
+          }
+          else{
+            Console.Write("Логин: ");
+           username = Console.ReadLine();
+          Console.Write("Пароль: ");
+       passwd = Console.ReadLine();
+      if(auth.authorizate(status,username, passwd)){
+        if(status==1){
+         Console.Write("Здесь вы можете преобрести билеты по направлениям:\n");
             preview_information();
             Console.Write("Введите пункт прибытия: ");
             string place_of_arrival = Console.ReadLine();
             Console.WriteLine("-----------------------------------------------------------------------------------");
             List<Flight_list> flight_list = new List<Flight_list>();//list of searched flights
             flight_list = Build_a_list_of_flights(flight_list, place_of_arrival);
-            Displaying_a_list_of_flights(flight_list);
-            Console.ReadLine();
+            Displaying_a_list_of_flights(flight_list); 
         }
-
-
+       else if(status==2)    {
+         Console.Write("Здесь будет функция добавления рейса");
+       }
+      }
+          else {
+            Console.Write("Не удалось войти в систему. Возможна ошибка логина или пароля.\nПроверьте данные и попробуйте войти еще раз.\n");
+             authorization();
+          }
+          }         
+        }
+    
         static void preview_information()//displays information about available flights
         {
             string line = "";
@@ -85,6 +127,99 @@ using System.IO;
     }
 
 
+
+abstract class User
+  {
+    protected string username;
+    protected string passwd;
+    public abstract bool ExistenceUser(string username, string passwd);
+  }
+
+  class DefaultUser : User
+  {
+    public DefaultUser(string username, string passwd)
+    {
+      this.username = username;
+      this.passwd = passwd;
+    }
+
+public override bool ExistenceUser(string username, string passwd){
+        string line = "";
+            bool user_existence = false;
+            using (StreamReader s = new StreamReader("File//Пользователи.txt"))
+            {
+                while ((line = s.ReadLine()) != null)
+                {
+                    
+                    string[] l = line.Split('|');
+                    if(l[0] ==username && l[1]==passwd)
+                    {                   
+                        user_existence = true;
+                        Console.Write($"Добро пожаловать, {l[2]}!\n");
+                    }
+                }
+            };
+    return user_existence;
+  }
+  }
+
+  class Administrator : User
+  {
+    public Administrator(string username, string passwd)
+    {
+      this.username = username;
+      this.passwd = passwd;
+    }
+
+public override bool ExistenceUser(string username, string passwd){
+        string line = "";
+            bool user_existence = false;
+            using (StreamReader s = new StreamReader("File//Администраторы.txt"))
+            {
+                while ((line = s.ReadLine()) != null)
+                {
+                    
+                    string[] l = line.Split('|');
+                    if(l[0] ==username && l[1]==passwd)
+                    {                   
+                        user_existence = true;
+                        Console.Write($"Добро пожаловать, {l[2]}!\n");
+                    }
+                }
+            };
+    return user_existence;
+  }
+  }
+
+  class Authorizator
+  {
+    public Authorizator()
+    {  
+    }
+    // Авторизация пользователя 
+    public bool authorizate(int status, string username, string passwd)
+    {
+  if(status==1){
+    DefaultUser user = new  DefaultUser(username, passwd);
+        if(user.ExistenceUser(username, passwd))return true;
+         else return false;
+               }
+  else if(status==2){
+    Administrator user = new  Administrator (username, passwd);
+     if(user.ExistenceUser(username, passwd))return true;
+         else return false;
+                    }
+    else return false;
+    }
+    // Регистация пользователя
+    public void register(string name,string username, string passwd){
+      System.IO.StreamWriter writer = new System.IO.StreamWriter("File//Пользователи.txt",true);
+              writer.WriteLine($"\n{username}|{passwd}|{name}");
+              writer.Close();
+    }
+  }
+
+////////////////////////////////////////////////////////////////////////
     class Flight_list //contains all the information about the searched flights
     {
         private string place_of_arrival;
